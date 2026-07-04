@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday! 💖</title>
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #ff4757;
+            --secondary: #ff7f50;
+            --dark: #2f3542;
+            --light: #fff0f2;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            color: var(--dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            transition: background-image 1.2s ease;
+        }
+
+        /* Slow ambient zoom/drift on the rose photo background */
+        body.main-bg {
+            animation: kenBurns 26s ease-in-out infinite alternate;
+        }
+
+        @keyframes kenBurns {
+            0% { background-size: 115%; background-position: 50% 35%; }
+            100% { background-size: 135%; background-position: 50% 65%; }
+        }
+
+        /* Falling rose petals */
+        .petal-bg {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .petal {
+            position: absolute;
+            top: -60px;
+            opacity: 0.9;
+            animation-name: petalFall;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            will-change: transform;
+        }
+
+        .petal svg {
+            display: block;
+            filter: drop-shadow(0 3px 4px rgba(0,0,0,0.15));
+        }
+
+        @keyframes petalFall {
+            0% { transform: translate(0, -60px) rotate(0deg); opacity: 0.9; }
+            85% { opacity: 0.9; }
+            100% { transform: translate(var(--drift, 60px), 110vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* ================= NAME ENTRY SCREEN ================= */
+        #entry-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff9a9e 0%, #ff6b81 45%, #c0392b 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease infinite;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #entry-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .entry-box {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            padding: 45px 35px;
+            border-radius: 25px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+            max-width: 420px;
+            width: 100%;
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.7); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .entry-emoji {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            animation: heartbeat 1.5s infinite;
+        }
+
+        .entry-box h2 {
+            font-size: 1.6rem;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .entry-box p {
+            color: #777;
+            margin-bottom: 22px;
+            font-size: 0.95rem;
+        }
+
+        #name-input {
+            width: 100%;
+            padding: 14px 18px;
+            font-size: 1.1rem;
+            border: 2px solid #ffd1d9;
+            border-radius: 15px;
+            outline: none;
+            text-align: center;
+            margin-bottom: 18px;
+            transition: border-color 0.3s ease;
+        }
+
+        #name-input:focus {
+            border-color: var(--primary);
+        }
+
+        #enter-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 8px 20px rgba(255, 71, 87, 0.35);
+        }
+
+        #enter-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(255, 71, 87, 0.45);
+        }
+
+        #enter-btn:active {
+            transform: translateY(0);
+        }
+
+        #name-error {
+            color: var(--primary);
+            font-size: 0.85rem;
+            margin-top: -10px;
+            margin-bottom: 14px;
+            min-height: 1em;
+        }
+
+        /* ================= MAIN PAGE ================= */
+        #main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 1.2s ease;
+        }
+
+        #main-content.revealed {
+            opacity: 1;
+        }
+
+        /* Floating Hearts Background Effect */
+        .heart-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .floating-heart {
+            position: absolute;
+            display: block;
+            list-style: none;
+            background-color: rgba(255, 255, 255, 0.4);
+            clip-path: path('M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z');
+            animation: floatUp 20s linear infinite;
+            bottom: -150px;
+        }
+
+        header {
+            text-align: center;
+            margin: 40px 0;
+            animation: gentleBounce 3s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            color: #fff;
+            text-shadow: 2px 4px 15px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #fff;
+            font-weight: 400;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            padding: 6px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            text-shadow: 1px 1px 5px rgba(0,0,0,0.2);
+        }
+
+        #song-indicator {
+            margin-top: 14px;
+            color: #fff;
+            font-size: 0.9rem;
+            background: rgba(0,0,0,0.25);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 20px;
+        }
+
+        .note-bounce {
+            display: inline-block;
+            animation: notebounce 0.6s ease-in-out infinite;
+        }
+
+        @keyframes notebounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        /* --- SURPRISE BOX --- */
+        .surprise-container {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            padding: 35px;
+            border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            z-index: 1;
+        }
+
+        .wishes-text {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .wishes-text strong {
+            color: var(--primary);
+        }
+
+        /* --- VIDEO SECTION --- */
+       .video-section{
+
+    width:100%;
+    max-width:900px;
+
+    margin:40px auto;
+
+    background:rgba(255,255,255,.15);
+
+    backdrop-filter:blur(10px);
+
+    padding:20px;
+
+    border-radius:20px;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+
+    text-align:center;
+
+}
+
+.video-section video{
+    width:100%;
+    height:auto;
+    max-width:100%;
+    border-radius:15px;
+    display:block;
+    object-fit:contain;
+    background:black;
+    margin:0 auto;
+    pointer-events:all;
+}
+        .video-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            animation: heartbeat 1.5s infinite;
+        }
+
+        /* --- PHOTO GALLERY --- */
+        .gallery-title {
+            color: white;
+            font-size: 2.2rem;
+            margin-bottom: 30px;
+            text-shadow: 2px 4px 10px rgba(0, 0, 0, 0.4);
+            z-index: 1;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            margin-bottom: 50px;
+            z-index: 1;
+        }
+
+        .polaroid {
+            background: white;
+            padding: 15px;
+            padding-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            transform: rotate(var(--r));
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .polaroid:hover {
+            transform: scale(1.08) rotate(0deg);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        .placeholder-img {
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 400px;
+            background: #ffeef0;
+            border: 1px solid #ffdae0;
+            margin-bottom: 15px;
+            display: block;
+            object-fit: contain;
+            object-position: center;
+            border-radius: 8px;
+        }
+
+        .polaroid span {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-size: 1.1rem;
+            color: #555;
+            display: block;
+            text-align: center;
+        }
+
+        /* --- KEYFRAMES ANIMATIONS --- */
+        @keyframes gentleBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            20% { transform: scale(1.1); }
+            40% { transform: scale(1.05); }
+            60% { transform: scale(1.15); }
+            80%, 100% { transform: scale(1); }
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-1200px) rotate(720deg); opacity: 0; }
+        }
+
+        /* Heart distribution */
+        .floating-heart:nth-child(1){ left: 25%; width: 40px; height: 40px; animation-delay: 0s; }
+        .floating-heart:nth-child(2){ left: 10%; width: 20px; height: 20px; animation-delay: 2s; animation-duration: 12s; }
+        .floating-heart:nth-child(3){ left: 70%; width: 25px; height: 25px; animation-delay: 4s; }
+        .floating-heart:nth-child(4){ left: 40%; width: 60px; height: 60px; animation-delay: 0s; animation-duration: 18s; }
+        .floating-heart:nth-child(5){ left: 65%; width: 30px; height: 30px; animation-delay: 0s; }
+        .floating-heart:nth-child(6){ left: 85%; width: 45px; height: 45px; animation-delay: 5s; }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2.3rem; }
+            .gallery-grid { grid-template-columns: 1fr 1fr; gap: 15px; }
+            .placeholder-img { height: 150px; }
+            .entry-box { padding: 35px 25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Falling rose petals (always on top of whichever background is active) -->
+    <div class="petal-bg" id="petal-bg"></div>
+
+    <!-- ================= NAME ENTRY SCREEN ================= -->
+    <div id="entry-screen">
+        <div class="entry-box">
+            <div class="entry-emoji">🎂</div>
+            <h2>Before we begin...</h2>
+            <p>enter your  beautiful name? ❤️</p>
+            <input type="text" id="name-input" placeholder="Enter your name" maxlength="30" autocomplete="off" />
+            <div id="name-error"></div>
+            <button id="enter-btn">Enter 🎉</button>
+        </div>
+    </div>
+
+    <!-- ================= MAIN PAGE ================= -->
+    <div id="main-content">
+
+        <!-- Animated Heart Overlay Elements -->
+        <ul class="heart-bg">
+            <li class="floating-heart"></li>
+            <li class="floating-heart"></li>
+            <li class="floating-heart"></li>
+            <li class="floating-heart"></li>
+            <li class="floating-heart"></li>
+            <li class="floating-heart"></li>
+        </ul>
+
+        <header>
+            <h1 id="birthday-heading">Happy Birthday! 💖</h1>
+            <p class="subtitle">Made with love, just for you... ❤️by NEETAK</p>
+            <div id="song-indicator"><span class="note-bounce">🎵</span> Playing your favorite song ❤️ <span class="note-bounce">🎵</span></div>
+        </header>
+
+        <!-- 1. The Heartfelt Wish -->
+        <section class="surprise-container">
+            <div class="wishes-text">
+                <p>🎉 <strong>Cheers to another incredible year, sorry for late!</strong> 🎉</p>
+                <br>
+                <p>ಸಾವಿರ ಜನರನ್ನು ಭೇಟಿಯಾದರೂ, ನಿನ್ನಂತಹ ಗೆಳತಿ ಸಿಗುವುದು ತುಂಬಾ ಅಪರೂಪ.
+                 ದೂರ ನಮ್ಮನ್ನು ಬೇರ್ಪಡಿಸಬಹುದು, ಆದರೆ ನಮ್ಮ ಸ್ನೇಹವನ್ನು ಎಂದಿಗೂ ಬೇರ್ಪಡಿಸಲಾರದು. ಹ್ಯಾಪಿ ಬರ್ತ್‌ಡೇ, ನನ್ನ ಜೀವದ ಗೆಳತಿ! ❤️</p>
+                <br>
+                <p>May this year bring you endless joy, breakthrough moments, and all the success you deserve. You're not just getting older; you're leveling up! 🚀</p>
+                <br>
+                <p><strong>ದೂರದಲ್ಲಿದ್ದರೂ ನನ್ನ ಎಲ್ಲಾ ರಹಸ್ಯಗಳನ್ನು, ಸಂತೋಷಗಳನ್ನು ಮತ್ತು ದುಃಖಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳುವ ಏಕೈಕ ವ್ಯಕ್ತಿ ನೀನು.
+                 ನಮ್ಮ ಸ್ನೇಹ ಹೀಗೆಯೇ ಎಂದೆಂದಿಗೂ ಉಳಿಯಲಿ. ಹುಟ್ಟುಹಬ್ಬದ ಶುಭಾಶಯಗಳು! 🌸💕❤️</strong></p>
+            </div>
+            <p>ದೂರದಲ್ಲಿದ್ದರೂ ಮನಸ್ಸಿಗೆ ಹತ್ತಿರವಿರುವವಳು ನೀನು, ಸುವರ್ಣ.
+               ಕಾಲ ಬದಲಾಗಬಹುದು, ದೂರ ಹೆಚ್ಚಾಗಬಹುದು,
+               ಆದರೆ ನಮ್ಮ ಸ್ನೇಹ ಎಂದಿಗೂ ಬದಲಾಗದು.
+               ಸದಾ ನಗುತ್ತಿರು, ಸಂತೋಷವಾಗಿರು.
+            ಸುವರ್ಣ,❤️</p>
+        </section>
+
+       <!-- Birthday Video -->
+<section class="video-section">
+
+    <video id="birthdayVideo" controls width="100%" height="auto" preload="auto" crossorigin="anonymous" allowfullscreen style="margin: 0 auto; display: block; max-width: 100%;">
+        <source src="birthday-video.mp4" type="video/mp4">
+        Your browser does not support HTML5 video.
+    </video>
+
+</section>
+
+        <!-- 3. Photo Gallery Placeholders -->
+        <h2 class="gallery-title">📸 Beautiful Memories Together</h2>
+
+        <div class="gallery-grid">
+            <div class="polaroid" style="--r: -3deg">
+                <img src="Screenshot 2026-07-04 122403.png" alt="Day One" class="placeholder-img" />
+                <span>Day One 🤝</span>
+            </div>
+            <div class="polaroid" style="--r: 2deg">
+                <img src="Screenshot 2026-07-04 122416.png" alt="That random road trip" class="placeholder-img" />
+                <span>That random road trip 🚗</span>
+            </div>
+            <div class="polaroid" style="--r: -1deg">
+                <img src="Screenshot 2026-07-04 122426.png" alt="Laughing at nothing" class="placeholder-img" />
+                <span>Laughing at nothing 😂</span>
+            </div>
+            <div class="polaroid" style="--r: 4deg">
+                <img src="Screenshot 2026-07-04 122452.png" alt="Partners in crime" class="placeholder-img" />
+                <span>Partners in crime 👑</span>
+            </div>
+            <div class="polaroid" style="--r: -4deg">
+                <img src="Screenshot 2026-07-04 122501.png" alt="Foodies for life" class="placeholder-img" />
+                <span>Foodies for life 🍕</span>
+            </div>
+            <div class="polaroid" style="--r: 3deg">
+                <img src="Screenshot 2026-07-04 122807.png" alt="Unstoppable duo" class="placeholder-img" />
+                <span>Unstoppable duo ✨</span>
+            </div>
+            <div class="polaroid" style="--r: -2deg">
+                <img src="Screenshot 2026-07-04 122816.png" alt="Late night talks" class="placeholder-img" />
+                <span>Late night talks 🌌</span>
+            </div>
+            <div class="polaroid" style="--r: 1deg">
+                <img src="Screenshot 2026-07-04 122823.png" alt="The best vibes" class="placeholder-img" />
+                <span>The best vibes 🎶</span>
+            </div>
+            <div class="polaroid" style="--r: -3deg">
+                <img src="Screenshot 2026-07-04 122830.png" alt="Always matching" class="placeholder-img" />
+                <span>Always matching 👯‍♂️</span>
+            </div>
+            <div class="polaroid" style="--r: 2deg">
+                <img src="su.jpeg" alt="To many more" class="placeholder-img" />
+                <span>To many more! 🥂</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ BACKGROUND DEFINITIONS ============
+        var entryBackground = "linear-gradient(135deg, #ff9a9e 0%, #ff6b81 45%, #c0392b 100%)";
+        var mainBackground = "linear-gradient(rgba(120, 10, 30, 0.45), rgba(190, 30, 60, 0.5)), url('https://images.unsplash.com/photo-1494972308805-463bc619d34e?fm=jpg&q=80&w=2000&auto=format&fit=crop')";
+
+        // ============ ROSE PETAL GENERATOR ============
+        function petalSVG(color) {
+            return '<svg width="26" height="26" viewBox="0 0 26 26">' +
+                '<path d="M13 1 C 20 4, 24 10, 13 25 C 2 10, 6 4, 13 1 Z" fill="' + color + '"/>' +
+                '</svg>';
+        }
+
+        function spawnPetals(count) {
+            var container = document.getElementById('petal-bg');
+            var colors = ['#e0245e', '#ff4757', '#ff7f9c', '#c0392b', '#ff9aa2'];
+            for (var i = 0; i < count; i++) {
+                var petal = document.createElement('div');
+                petal.className = 'petal';
+                var left = Math.random() * 100;
+                var size = 16 + Math.random() * 22;
+                var duration = 8 + Math.random() * 10;
+                var delay = Math.random() * 12;
+                var drift = (Math.random() * 160 - 80) + 'px';
+                var color = colors[Math.floor(Math.random() * colors.length)];
+
+                petal.style.left = left + 'vw';
+                petal.style.width = size + 'px';
+                petal.style.setProperty('--drift', drift);
+                petal.style.animationDuration = duration + 's';
+                petal.style.animationDelay = '-' + delay + 's';
+                petal.innerHTML = petalSVG(color);
+                container.appendChild(petal);
+            }
+        }
+
+        // ============ BIRTHDAY SONG (Web Audio API, no external file needed) ============
+       function playBirthdaySong() {
+
+    var music = document.getElementById("birthdayMusic");
+
+    music.volume = 0.7;   // 70% volume
+
+    music.play().catch(function(error){
+        console.log(error);
+    });
+
+}
+
+        // ============ CONFETTI BURST ============
+        function fireConfetti() {
+            var duration = 4 * 1000;
+            var end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 2,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0, y: 0.8 },
+                    colors: ['#ff4757', '#ff7f50', '#ffffff']
+                });
+                confetti({
+                    particleCount: 2,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1, y: 0.8 },
+                    colors: ['#ff4757', '#ff7f50', '#ffffff']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+
+        // ============ NAME ENTRY LOGIC ============
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.style.backgroundImage = entryBackground;
+            spawnPetals(14);
+
+            var entryScreen = document.getElementById('entry-screen');
+            var mainContent = document.getElementById('main-content');
+            var nameInput = document.getElementById('name-input');
+            var enterBtn = document.getElementById('enter-btn');
+            var nameError = document.getElementById('name-error');
+            var heading = document.getElementById('birthday-heading');
+
+            function enterSite() {
+                var name = nameInput.value.trim();
+                if (!name) {
+                    nameError.textContent = "Don't be shy — tell us your name! 🎈";
+                    nameInput.focus();
+                    return;
+                }
+
+                // Personalize heading
+                heading.textContent = "Happy Birthday, " + name + "! 💖";
+
+                // Swap background with a smooth transition + gentle ambient zoom
+                document.body.style.backgroundImage = mainBackground;
+                document.body.classList.add('main-bg');
+                spawnPetals(10); // a few extra petals join the celebration
+
+                // Hide entry screen, reveal main content
+                entryScreen.classList.add('hidden');
+                mainContent.classList.add('revealed');
+
+                // Kick off the fun
+                fireConfetti();
+                playBirthdaySong();
+            }
+
+            enterBtn.addEventListener('click', enterSite);
+            nameInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') enterSite();
+            });
+
+            nameInput.focus();
+        });
+    </script>
+    <audio id="birthdayMusic" loop>
+    <source src="WhatsApp Audio 2026-07-04 at 12.32.52 PM.mpeg.wav" type="audio/wav">
+    Your browser does not support the audio element.
+</audio>
+</body>
+</html>
